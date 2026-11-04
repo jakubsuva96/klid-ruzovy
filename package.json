@@ -1,0 +1,17 @@
+{
+  "name": "klid-ruzovy",
+  "version": "1.0.0",
+  "description": "Klid – soukromý chat na těžké chvíle. Běží na tvém počítači přes Claude Code, nic si nepamatuje.",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs --open",
+    "serve": "node server.mjs",
+    "check": "node scripts/check.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "private": true
+}

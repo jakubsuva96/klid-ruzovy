@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#170d14">
+<title>Klid</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="/manifest.webmanifest">
+<script src="/vendor/marked.min.js"></script>
+<script src="/vendor/purify.min.js"></script>
+<style>
+:root{
+  --bg:#170d14; --ink:#fbeff5; --soft:#dcc2d0; --faint:#a98a9b; --line:rgba(255,220,238,.09); --line2:rgba(255,220,238,.16);
+  --panel:rgba(255,235,245,.035); --bubble:rgba(255,235,245,.05); --me:rgba(255,122,174,.2); --meLine:rgba(255,122,174,.35);
+  --a:255,122,174; --a2:255,186,214; --a3:214,150,255;
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',system-ui,sans-serif;
+  --ease:cubic-bezier(.22,.61,.36,1); --vign:rgba(23,13,20,.6);
+}
+body.light{
+  --bg:#fff4f8; --ink:#3b1d2d; --soft:#6f4659; --faint:#a07a8c; --line:rgba(120,30,70,.1); --line2:rgba(120,30,70,.18);
+  --panel:rgba(255,255,255,.55); --bubble:rgba(255,255,255,.75); --me:rgba(240,90,150,.16); --meLine:rgba(220,70,135,.3);
+  --a:236,84,148; --a2:255,160,200; --a3:190,120,250; --vign:rgba(255,244,248,.5);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden;transition:background .6s var(--ease),color .6s var(--ease)}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+a{color:rgb(var(--a))}
+svg.i{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* pozadí */
+.aura{position:fixed;inset:0;overflow:hidden;z-index:0;pointer-events:none}
+.aura span{position:absolute;border-radius:50%}
+.aura .a{width:62vmax;height:62vmax;left:-18vmax;top:-22vmax;background:radial-gradient(circle,rgba(var(--a),.55),transparent 68%);opacity:.45;animation:d1 38s ease-in-out infinite alternate}
+.aura .b{width:55vmax;height:55vmax;right:-20vmax;top:12vh;background:radial-gradient(circle,rgba(var(--a3),.5),transparent 68%);opacity:.28;animation:d2 46s ease-in-out infinite alternate}
+.aura .c{width:50vmax;height:50vmax;left:15vw;bottom:-30vmax;background:radial-gradient(circle,rgba(var(--a2),.5),transparent 68%);opacity:.25;animation:d3 52s ease-in-out infinite alternate}
+.aura::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,transparent 0%,var(--vign) 75%,var(--bg) 100%)}
+@keyframes d1{to{transform:translate(12vw,8vh) scale(1.15)}}
+@keyframes d2{from{transform:scale(1.1)}to{transform:translate(-14vw,-6vh) scale(.95)}}
+@keyframes d3{from{transform:scale(.95)}to{transform:translate(8vw,-10vh) scale(1.12)}}
+@media (prefers-reduced-motion:reduce){.aura span{animation:none!important}}
+
+/* rozvržení */
+.app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;max-width:860px;margin:0 auto}
+header{flex:none;display:flex;align-items:center;gap:8px;padding:14px 16px 10px}
+.mark{font-weight:650;letter-spacing:.02em;font-size:17px;margin-right:auto;display:flex;align-items:center;gap:8px}
+.mark i{width:9px;height:9px;border-radius:50%;background:rgb(var(--a));box-shadow:0 0 14px rgba(var(--a),.8)}
+.hb{display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:13.5px;color:var(--soft);transition:all .3s var(--ease)}
+.hb:hover{color:var(--ink);border-color:var(--line2)}
+.hb.sos{color:#fff;background:linear-gradient(135deg,rgba(var(--a),.55),rgba(var(--a3),.35));border-color:rgba(var(--a),.45)}
+body.light .hb.sos{color:#4a0f2a}
+.hb .t{white-space:nowrap}
+@media(max-width:560px){.hb .t{display:none}.hb.sos .t{display:inline}.hb{padding:0 10px}}
+
+#scroll{flex:1;overflow-y:auto;padding:0 16px 24px;scroll-behavior:smooth}
+#scroll::-webkit-scrollbar{width:0}
+.stage{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:46vh;transition:min-height .9s var(--ease)}
+.stage.small{min-height:120px}
+.orb{--s:clamp(120px,22vw,170px);position:relative;width:var(--s);height:var(--s);transition:width .9s var(--ease),height .9s var(--ease)}
+.stage.small .orb{--s:64px}
+.orb3d{position:absolute;inset:-45%;pointer-events:none}
+.orb::before{content:"";position:absolute;inset:-60%;border-radius:50%;background:radial-gradient(circle,rgba(var(--a),.3) 0%,rgba(var(--a2),.1) 40%,transparent 66%);animation:halo 7s ease-in-out infinite;pointer-events:none}
+.orb .core{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff 0%,#ffe1ee 12%,rgb(var(--a2)) 36%,rgb(var(--a)) 64%,#7a1a48 100%);box-shadow:0 0 50px rgba(var(--a),.45);animation:breathe 6s ease-in-out infinite}
+.orb.gl .core{display:none}
+.orb.thinking::before{animation-duration:2.2s}
+@keyframes halo{50%{transform:scale(1.1);opacity:.75}}
+@keyframes breathe{50%{transform:scale(1.04)}}
+.hello{margin-top:22px;font-size:22px;font-weight:600;transition:all .6s var(--ease)}
+.hsub{color:var(--faint);font-size:14.5px;margin-top:4px}
+.starts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px}
+.starts button{padding:8px 14px;border-radius:999px;border:1px solid var(--line2);background:var(--panel);font-size:14px;color:var(--soft)}
+.starts button:hover{color:var(--ink);border-color:rgba(var(--a),.5)}
+.stage.small .hello,.stage.small .hsub,.stage.small .starts{display:none}
+.pstate{margin-top:8px;font-size:12.5px;color:var(--faint);height:18px}
+
+/* zprávy */
+#log{display:flex;flex-direction:column;gap:14px}
+.m{display:flex;animation:in .5s var(--ease)}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+.m.me{justify-content:flex-end}
+.b{max-width:min(640px,88%);padding:11px 16px;border-radius:20px;border:1px solid var(--line);background:var(--bubble);overflow-wrap:anywhere}
+.me .b{background:var(--me);border-color:var(--meLine);border-bottom-right-radius:6px;white-space:pre-wrap}
+.ai .b{border-bottom-left-radius:6px;max-width:100%;background:transparent;border-color:transparent;padding:4px 2px}
+.b p{margin:.45em 0}.b p:first-child{margin-top:0}.b p:last-child{margin-bottom:0}
+.b h2{font-size:17px;margin:1em 0 .3em}.b h3{font-size:15.5px;margin:.9em 0 .3em}
+.b ul,.b ol{margin:.4em 0 .4em 1.3em}.b li{margin:.2em 0}
+.b strong{color:var(--ink);font-weight:650}
+.b em{color:var(--soft)}
+.b blockquote{border-left:2px solid rgba(var(--a),.6);padding:2px 0 2px 12px;margin:.6em 0;color:var(--soft)}
+.b code{font-size:.9em;padding:1px 6px;border-radius:6px;background:var(--panel);border:1px solid var(--line)}
+.b table{border-collapse:collapse;margin:.6em 0;font-size:14.5px}.b td,.b th{border:1px solid var(--line2);padding:5px 9px;text-align:left}
+.call{display:flex;gap:10px;margin:.7em 0;padding:10px 14px;border-radius:14px;border:1px solid rgba(var(--c),.35);background:rgba(var(--c),.1)}
+.call .cl{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgb(var(--c));margin-bottom:2px}
+.call p{margin:0!important}
+.c-tip{--c:var(--a)}.c-otazka{--c:var(--a3)}.c-dobre{--c:80,200,140}.c-pozor{--c:240,110,90}.c-klid{--c:120,170,255}
+.err{color:#ff8b8b;font-style:italic}
+.typing{display:flex;gap:5px;padding:10px 2px}
+.typing i{width:7px;height:7px;border-radius:50%;background:rgb(var(--a));opacity:.4;animation:tp 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes tp{30%{opacity:1;transform:translateY(-3px)}}
+
+/* pomoc v krizi */
+#help{display:none;margin:0 16px 10px;padding:12px 14px;border-radius:16px;border:1px solid rgba(var(--a),.4);background:rgba(var(--a),.12);font-size:14px;line-height:1.5}
+body.crisis #help{display:block}
+#help b{display:block;margin-bottom:4px}
+#help a{color:var(--ink);font-weight:650;text-decoration:none;border-bottom:1px solid rgba(var(--a),.6)}
+#help .x{float:right;color:var(--faint);font-size:18px;line-height:1}
+
+/* psaní */
+.composer{flex:none;padding:6px 16px calc(12px + env(safe-area-inset-bottom))}
+.field{display:flex;align-items:flex-end;gap:8px;padding:8px 8px 8px 16px;border-radius:22px;border:1px solid var(--line2);background:var(--panel);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.field:focus-within{border-color:rgba(var(--a),.5)}
+textarea#input{flex:1;resize:none;border:0;outline:0;background:transparent;color:var(--ink);font:inherit;max-height:180px;padding:7px 0}
+textarea#input::placeholder{color:var(--faint)}
+.send{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgb(var(--a));color:#fff;transition:transform .2s var(--ease),opacity .2s}
+.send:disabled{opacity:.35;cursor:default}
+.send:not(:disabled):hover{transform:scale(1.06)}
+.foot{text-align:center;font-size:11.5px;color:var(--faint);margin-top:8px}
+.foot a{color:var(--faint)}
+
+/* dotazník a nastavení */
+.sheet{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(10,4,8,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.sheet.on{display:flex}
+.box{width:min(560px,100%);max-height:calc(100% - 20px);overflow-y:auto;padding:26px 24px 22px;border-radius:24px;border:1px solid var(--line2);background:var(--bg);box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.box h2{font-size:21px;margin-bottom:6px}
+.box .sub{color:var(--faint);font-size:14px;margin-bottom:18px}
+.prog{height:4px;border-radius:2px;background:var(--line);margin-bottom:22px;overflow:hidden}
+.prog i{display:block;height:100%;background:rgb(var(--a));transition:width .4s var(--ease)}
+.q{font-size:19px;font-weight:600;line-height:1.35;margin-bottom:6px}
+.qh{color:var(--faint);font-size:14px;margin-bottom:16px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts button{padding:9px 15px;border-radius:999px;border:1px solid var(--line2);background:var(--panel);font-size:14.5px;color:var(--soft);transition:all .2s}
+.opts button.on{background:rgba(var(--a),.22);border-color:rgba(var(--a),.6);color:var(--ink)}
+.scale{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+.scale button{padding:10px 0;border-radius:10px}
+.scale+.ends{display:flex;justify-content:space-between;font-size:12px;color:var(--faint);margin-top:6px}
+.box input[type=text],.box textarea{width:100%;padding:11px 14px;border-radius:14px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);font:inherit;outline:0}
+.box input[type=text]:focus,.box textarea:focus{border-color:rgba(var(--a),.55)}
+.box textarea{resize:vertical;min-height:84px}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;color:var(--soft);margin-top:14px;cursor:pointer}
+.chk input{margin-top:4px;accent-color:rgb(var(--a));width:17px;height:17px}
+.note{margin-top:14px;padding:11px 14px;border-radius:14px;background:rgba(var(--a),.12);border:1px solid rgba(var(--a),.35);font-size:14px;line-height:1.5}
+.nav{display:flex;justify-content:space-between;align-items:center;margin-top:24px;gap:10px}
+.btn{padding:10px 18px;border-radius:14px;border:1px solid var(--line2);background:var(--panel);font-size:14.5px}
+.btn.pri{background:rgb(var(--a));border-color:transparent;color:#fff;font-weight:600}
+.btn.pri:disabled{opacity:.4;cursor:default}
+.btn.danger{color:#ff8b8b}
+.qerr{color:#ff8b8b;font-size:13px;margin-top:10px;min-height:18px}
+.sum{font-size:14px;color:var(--soft);white-space:pre-wrap;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--panel);margin:6px 0 4px}
+</style>
+</head>
+<body>
+<div class="aura"><span class="a"></span><span class="b"></span><span class="c"></span></div>
+
+<div class="app">
+  <header>
+    <div class="mark"><i></i>Klid</div>
+    <button class="hb sos" id="sos" title="Klid zpomalí a bude jen s tebou"><svg class="i" viewBox="0 0 24 24"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg><span class="t">Je mi zle teď</span></button>
+    <button class="hb" id="newBtn" title="Nový rozhovor – ten dosavadní zmizí"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="t">Nový rozhovor</span></button>
+    <button class="hb" id="meBtn" title="Moje odpovědi z dotazníku"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="t">Já</span></button>
+    <button class="hb" id="themeBtn" title="Světlý / tmavý režim" aria-label="Světlý nebo tmavý režim"><svg class="i" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+  </header>
+
+  <div id="scroll">
+    <div class="stage" id="stage">
+      <div class="orb" id="orb"><div class="core"></div><div class="orb3d" id="orb3d"></div></div>
+      <div class="pstate" id="pstate"></div>
+      <div class="hello" id="hello">Ahoj. Jsem tady.</div>
+      <div class="hsub">Napiš, co se děje. Nic si nepamatuju a nic se neukládá.</div>
+      <div class="starts" id="starts">
+        <button>Potřebuju se vypovídat</button><button>Je mi úzko</button><button>Je mi smutno</button><button>Nemůžu spát</button>
+      </div>
+    </div>
+    <div id="log"></div>
+  </div>
+
+  <div id="help"><button class="x" id="helpX" aria-label="Skrýt">×</button>
+    <b>Nejsi na to sám/sama. Lidé, kteří pomůžou hned:</b>
+    Linka první psychické pomoci <a href="tel:116123">116 123</a> (nonstop, zdarma) · chat na <a href="https://www.linkapsychickepomoci.cz" target="_blank" rel="noopener">linkapsychickepomoci.cz</a><br>
+    Akutní nebezpečí: záchranka <a href="tel:155">155</a> nebo <a href="tel:112">112</a> · Do 18 let: Linka bezpečí <a href="tel:116111">116 111</a>
+  </div>
+
+  <div class="composer">
+    <div class="field">
+      <textarea id="input" rows="1" placeholder="Napiš, co se děje…" autofocus></textarea>
+      <button class="send" id="send" aria-label="Odeslat" disabled><svg class="i" id="sendIco" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+    </div>
+    <div class="foot">Klid není terapeut ani krizová linka. V nouzi <a href="tel:116123">116 123</a> · <a href="tel:155">155</a> · <a href="tel:112">112</a></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet"><div class="box" id="box"></div></div>
+
+<script type="module">
+import {createOrb} from '/orb.js';
+try{window.KLIDORB=createOrb(document.getElementById('orb3d'));if(window.KLIDORB){document.getElementById('orb').classList.add('gl');window.orbColors?.()}}catch{}
+</script>
+<script>
+const $=id=>document.getElementById(id);
+const api=(p,o={})=>fetch(p,{...o,headers:{'x-klid':'1','content-type':'application/json',...(o.headers||{})}});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
+
+// ---------- vzhled ----------
+function orbColors(){const l=document.body.classList.contains('light');window.KLIDORB?.color?.(l?[236,84,148]:[255,105,165],l?[255,150,195]:[255,184,214])}
+window.orbColors=orbColors;
+function setTheme(t){document.body.classList.toggle('light',t==='light');store.set('klid-theme',t);orbColors();
+  document.querySelector('meta[name=theme-color]').content=t==='light'?'#fff4f8':'#170d14'}
+setTheme(store.get('klid-theme','dark'));
+$('themeBtn').onclick=()=>setTheme(document.body.classList.contains('light')?'dark':'light');
+function orbState(s){$('orb').classList.toggle('thinking',s==='thinking');window.KLIDORB?.set?.(s||'idle');$('pstate').textContent=s==='thinking'?'přemýšlí…':s==='writing'?'píše…':''}
+
+// ---------- dotazník ----------
+const Q=[
+ {k:'jmeno',t:'text',q:'Jak ti mám říkat?',h:'Jméno nebo přezdívka. Klidně nech prázdné.',ph:'Třeba Bára'},
+ {k:'rod',t:'one',q:'Jak o tobě mám mluvit?',h:'Ať ti to v češtině sedí.',o:['žensky','mužsky','neutrálně'],req:true},
+ {k:'vek',t:'one',q:'Kolik ti je?',o:['méně než 18','18–25','26–35','36–50','víc než 50','nechci říct']},
+ {k:'tema',t:'many',q:'S čím tě sem nejčastěji něco přivede?',h:'Vyber, kolik chceš.',o:['úzkost a stres','smutek','vztahy nebo rozchod','rodina','práce nebo škola','vyhoření a únava','samota','spánek','sebevědomí','jídlo a tělo','jen si popovídat']},
+ {k:'nalada',t:'scale',q:'Jak se máš poslední dva týdny?',h:'1 = hodně špatně, 10 = moc dobře.'},
+ {k:'spanek',t:'one',q:'A jak spíš?',o:['špatně','tak napůl','dobře']},
+ {k:'terapie',t:'one',q:'Chodíš k terapeutovi nebo psychologovi?',o:['ano','ne','hledám','dřív ano']},
+ {k:'pomaha',t:'area',q:'Co ti obvykle pomůže, když je zle?',h:'Lidi, činnosti, místa, cokoli.',ph:'Procházka se psem, zavolat ségře, sprcha…'},
+ {k:'styl',t:'one',q:'Jak chceš, abych odpovídal/a?',o:['hlavně poslouchej','mix – poslouchej i poraď','praktické kroky']},
+ {k:'delka',t:'one',q:'Odpovědi spíš…',o:['krátké','střední','podrobnější']},
+ {k:'nechci',t:'area',q:'Je něco, o čem nechceš mluvit, nebo co ti vadí?',h:'Třeba témata, slova nebo styl. Nepovinné.',ph:'Nechci rady typu „jdi si zacvičit“…'},
+ {k:'bezpeci',t:'one',q:'Napadlo tě v posledních týdnech, že by bylo lepší nebýt, nebo si ublížit?',h:'Ptám se, abych věděl/a, jak být opatrný/á. Odpověď zůstane jen u tebe v prohlížeči.',o:['ne','občas','často','radši neřeknu']},
+ {k:'souhlas',t:'consent',q:'Než začneme',h:''}
+];
+let P=store.get('klid-profil',null),qi=0,draft={};
+function renderQ(){
+  const s=Q[qi],v=draft[s.k];
+  let body='';
+  if(s.t==='text')body=`<input type="text" id="qv" maxlength="60" placeholder="${esc(s.ph||'')}" value="${esc(v||'')}">`;
+  if(s.t==='area')body=`<textarea id="qv" maxlength="600" placeholder="${esc(s.ph||'')}">${esc(v||'')}</textarea>`;
+  if(s.t==='one'||s.t==='many')body=`<div class="opts">${s.o.map(o=>`<button data-v="${esc(o)}" class="${(s.t==='many'?(v||[]).includes(o):v===o)?'on':''}">${esc(o)}</button>`).join('')}</div>`;
+  if(s.t==='scale')body=`<div class="opts scale">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button data-v="${n}" class="${v==n?'on':''}">${n}</button>`).join('')}</div><div class="ends"><span>hodně špatně</span><span>moc dobře</span></div>`;
+  if(s.t==='consent')body=`<div class="sum">Klid je chatovací parťák běžící na tvém počítači přes Claude. Není to terapeut, lékař ani krizová linka.
+
+Nic si nepamatuje: po zavření nebo „Novém rozhovoru“ všechno zmizí. Tvoje odpovědi z dotazníku zůstanou jen v tomhle prohlížeči (smažeš je v „Já“). Zprávy se zpracovávají přes tvůj účet Claude (Anthropic).
+
+Když je zle hodně: Linka první psychické pomoci 116 123 (nonstop), záchranka 155, tísňová linka 112.</div>
+  <label class="chk"><input type="checkbox" id="qv" ${v?'checked':''}> Rozumím a chci začít.</label>`;
+  let note='';
+  if(s.k==='vek'&&v==='méně než 18')note='<div class="note">Když je těžko, můžeš kdykoli zavolat nebo napsat i na Linku bezpečí <b>116 111</b> – nonstop, zdarma, i chat.</div>';
+  if(s.k==='bezpeci'&&(v==='občas'||v==='často'))note='<div class="note">Díky, že to říkáš. Tyhle myšlenky stojí za to sdílet s člověkem: Linka první psychické pomoci <b>116 123</b> (nonstop, zdarma), v akutním nebezpečí <b>155</b> nebo <b>112</b>. A já tu budu taky.</div>';
+  const last=qi===Q.length-1;
+  $('box').innerHTML=`<div class="prog"><i style="width:${Math.round(qi/(Q.length-1)*100)}%"></i></div>
+    <div class="q">${esc(s.q)}</div>${s.h?`<div class="qh">${esc(s.h)}</div>`:''}${body}${note}<div class="qerr" id="qerr"></div>
+    <div class="nav"><button class="btn" id="qBack" ${qi?'':'style="visibility:hidden"'}>Zpět</button>
+    <button class="btn pri" id="qNext">${last?'Začít':(s.t==='text'||s.t==='area')&&!v?'Přeskočit':'Dál'}</button></div>`;
+  $('box').querySelectorAll('.opts button').forEach(b=>b.onclick=()=>{
+    const val=s.t==='scale'?Number(b.dataset.v):b.dataset.v;
+    if(s.t==='many'){const a=new Set(draft[s.k]||[]);a.has(val)?a.delete(val):a.add(val);draft[s.k]=[...a]}else draft[s.k]=val;
+    renderQ()});
+  const inp=$('qv');
+  if(inp&&(s.t==='text'||s.t==='area')){inp.oninput=()=>{draft[s.k]=inp.value;$('qNext').textContent=inp.value.trim()?'Dál':'Přeskočit'};inp.focus();if(s.t==='text')inp.onkeydown=e=>{if(e.key==='Enter')$('qNext').click()}}
+  if(inp&&s.t==='consent')inp.onchange=()=>{draft[s.k]=inp.checked;$('qerr').textContent=''};
+  $('qBack').onclick=()=>{if(qi>0){qi--;renderQ()}};
+  $('qNext').onclick=()=>{
+    if(s.req&&!draft[s.k]){$('qerr').textContent='Vyber prosím jednu možnost.';return}
+    if(s.t==='consent'&&!draft[s.k]){$('qerr').textContent='Zaškrtni prosím, že rozumíš.';return}
+    if(last)return finishQ();qi++;renderQ()};
+}
+function openQ(){draft=P?{...P}:{};qi=0;$('sheet').classList.add('on');renderQ()}
+function finishQ(){P={...draft,vyplneno:new Date().toISOString().slice(0,10)};store.set('klid-profil',P);$('sheet').classList.remove('on');newConv()}
+function profileText(p){
+  if(!p)return'';const L=[];
+  const add=(l,v)=>{if(v!=null&&v!==''&&!(Array.isArray(v)&&!v.length))L.push(`- ${l}: ${Array.isArray(v)?v.join(', '):v}`)};
+  add('Oslovení',p.jmeno);add('Mluvit o něm/ní',p.rod);add('Věk',p.vek);add('Co ho/ji sem přivádí',p.tema);
+  add('Nálada posledních 14 dní (1–10)',p.nalada);add('Spánek',p.spanek);add('Terapeut/psycholog',p.terapie);
+  add('Co pomáhá',p.pomaha);add('Styl odpovědí',p.styl);add('Délka odpovědí',p.delka);add('O čem nechce mluvit / co vadí',p.nechci);
+  add('Myšlenky na nebýt / ublížení si v posledních týdnech',p.bezpeci);
+  return L.join('\n');
+}
+function openMe(){
+  $('sheet').classList.add('on');
+  $('box').innerHTML=`<h2>Já</h2><div class="sub">Tohle o sobě Klid ví na začátku každého rozhovoru. Uložené je jen v tomhle prohlížeči.</div>
+    <div class="sum">${esc(profileText(P)||'(dotazník zatím nevyplněn)')}</div>
+    <div class="nav"><button class="btn danger" id="meDel">Smazat moje údaje</button><span style="display:flex;gap:8px"><button class="btn" id="meEdit">Upravit</button><button class="btn pri" id="meOk">Zavřít</button></span></div>`;
+  $('meOk').onclick=()=>$('sheet').classList.remove('on');
+  $('meEdit').onclick=openQ;
+  $('meDel').onclick=()=>{if(!confirm('Smazat odpovědi z dotazníku z tohoto prohlížeče? Rozhovor se taky vymaže.'))return;store.del('klid-profil');P=null;$('log').innerHTML='';api('/api/new',{method:'POST',body:'{}'});openQ()};
+}
+$('meBtn').onclick=openMe;
+
+// ---------- chat ----------
+const CALL={tip:'Malý krok',otazka:'Otázka',dobre:'Povedlo se',pozor:'Pozor',klid:'Zpomal'};
+function md(src){
+  const html=DOMPurify.sanitize(marked.parse(src||''),{ADD_ATTR:['target']});
+  return html.replace(/<blockquote>\s*<p>\[!(tip|pozor|dobre|otazka|klid)\]\s*(?:<br>)?([\s\S]*?)<\/blockquote>/gi,(m,k,b)=>{k=k.toLowerCase();return `<div class="call c-${k}"><div><span class="cl">${CALL[k]}</span><p>${b}</div></div>`});
+}
+function balance(t){for(const tok of ['**','`']){if((t.split(tok).length-1)%2)t+=tok}return t}
+const log=$('log'),scroll=$('scroll'),input=$('input'),send=$('send');
+let busy=false,ctrl=null;
+const bottom=()=>{scroll.scrollTop=scroll.scrollHeight};
+function add(role,html){const m=document.createElement('div');m.className='m '+(role==='me'?'me':'ai');m.innerHTML=`<div class="b">${html}</div>`;log.appendChild(m);$('stage').classList.add('small');bottom();return m.firstChild}
+function setBusy(b){busy=b;send.disabled=!b&&!input.value.trim();$('sendIco').innerHTML=b?'<rect x="7" y="7" width="10" height="10" rx="2"/>':'<path d="M12 19V5M5 12l7-7 7 7"/>';send.setAttribute('aria-label',b?'Zastavit':'Odeslat')}
+input.oninput=()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,180)+'px';if(!busy)send.disabled=!input.value.trim()};
+input.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();busy?0:go()}};
+send.onclick=()=>busy?stop():go();
+$('starts').querySelectorAll('button').forEach(b=>b.onclick=()=>go({text:b.textContent}));
+$('sos').onclick=()=>{document.body.classList.add('crisis');go({text:'Je mi zle teď.',mode:'crisis'})};
+$('helpX').onclick=()=>document.body.classList.remove('crisis');
+$('newBtn').onclick=()=>{if(log.children.length&&!confirm('Začít nový rozhovor? Ten dosavadní zmizí – nikde se neukládá.'))return;newConv()};
+async function stop(){ctrl?.abort();await api('/api/stop',{method:'POST'})}
+const RISK=/(nechci (už )?žít|nebýt|zabít se|zabiju se|sebevra|sebepoško|řezat se|řežu se|umřít|ublížit si|ublížím si)/i;
+
+async function go(opt={}){
+  if(busy)return;const text=(opt.text||input.value).trim();if(!text)return;
+  if(!opt.text){input.value='';input.style.height='auto'}
+  if(RISK.test(text))document.body.classList.add('crisis');
+  add('me',esc(text));setBusy(true);orbState('thinking');
+  const t=add('ai','<div class="typing"><i></i><i></i><i></i></div>');let acc='',errMsg='',raf=0;
+  const paint=()=>{raf=0;t.innerHTML=md(balance(acc));const near=scroll.scrollHeight-scroll.scrollTop-scroll.clientHeight<140;if(near)bottom()};
+  ctrl=new AbortController();
+  try{
+    const res=await api('/api/chat',{method:'POST',signal:ctrl.signal,body:JSON.stringify({message:text,mode:opt.mode})});
+    if(!res.ok)throw new Error((await res.json().catch(()=>({}))).error||('HTTP '+res.status));
+    const rd=res.body.getReader(),dec=new TextDecoder();let buf='';
+    for(;;){const {value,done}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});
+      let i;while((i=buf.indexOf('\n\n'))>=0){const ch=buf.slice(0,i);buf=buf.slice(i+2);
+        const ev=(ch.match(/^event: (.*)$/m)||[])[1];let d={};try{d=JSON.parse((ch.match(/^data: (.*)$/m)||[,'{}'])[1])}catch{}
+        if(ev==='text'){acc+=d.text;orbState('writing');if(!raf)raf=requestAnimationFrame(paint)}
+        else if(ev==='done'&&d.text)acc=d.text;
+        else if(ev==='risk')document.body.classList.add('crisis');
+        else if(ev==='error')errMsg=d.message;}}
+  }catch(e){if(e.name!=='AbortError')errMsg=String(e.message).includes('fetch')?'Spojení se přerušilo. Běží Klid v terminálu?':e.message}
+  if(raf)cancelAnimationFrame(raf);
+  t.innerHTML=(acc.trim()?md(acc):'')+(errMsg?`<p class="err">${esc(errMsg)}</p>`:'')+(!acc.trim()&&!errMsg?'<p class="err">zastaveno</p>':'');
+  orbState('');setBusy(false);input.focus();
+}
+async function newConv(){
+  if(busy)await stop();log.innerHTML='';$('stage').classList.remove('small');document.body.classList.remove('crisis');
+  const n=P?.jmeno?.trim();$('hello').textContent=n?`Ahoj, ${n}. Jsem tady.`:'Ahoj. Jsem tady.';
+  await api('/api/new',{method:'POST',body:JSON.stringify({profile:profileText(P)})}).catch(()=>{});
+  input.focus();
+}
+// Každé otevření stránky = nový rozhovor (nulová paměť).
+if(P)newConv();else openQ();
+api('/api/health').then(r=>r.json()).then(h=>{if(!h.claude)add('ai','<p class="err">Nenašel jsem Claude Code. Nainstaluj ho podle README a Klida spusť znovu.</p>')}).catch(()=>{});
+</script>
+</body>
+</html>
